@@ -11,11 +11,12 @@ import (
 func main() {
 	r := gin.Default()
 
-	// CORS middleware
+	// ✅ Enable CORS globally and allow preflight OPTIONS
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"*"}, // Or restrict to your frontend: e.g. "https://your-frontend.com"
-		AllowMethods:     []string{"POST", "GET", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type"},
+		AllowOrigins:     []string{"*"}, // ⚠️ Use your frontend domain in production
+		AllowMethods:     []string{"GET", "POST", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept"},
+		ExposeHeaders:    []string{"Content-Length"},
 		AllowCredentials: true,
 	}))
 
@@ -51,7 +52,12 @@ func main() {
 		})
 	})
 
-	// Heroku dynamically sets the port
+	// 🔁 Handles OPTIONS requests to all routes (preflight)
+	r.OPTIONS("/*path", func(c *gin.Context) {
+		c.Status(http.StatusOK)
+	})
+
+	// Port handling for Heroku
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
