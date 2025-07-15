@@ -4,7 +4,6 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
@@ -12,23 +11,18 @@ func main() {
 	r := gin.Default()
 
 	// ✅ Updated CORS configuration to allow all origins
-	r.Use(cors.New(cors.Config{
-		AllowOrigins: []string{"*"},
-		AllowMethods: []string{
-			"GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH",
-		},
-		AllowHeaders: []string{
-			"Origin", "Content-Type", "Accept", "Authorization",
-			"X-Requested-With", "Access-Control-Request-Method",
-			"Access-Control-Request-Headers",
-		},
-		ExposeHeaders: []string{
-			"Content-Length", "Access-Control-Allow-Origin",
-			"Access-Control-Allow-Headers", "Content-Type",
-		},
-		AllowCredentials: false, // Set to false when using "*" for AllowOrigins
-		MaxAge:           86400, // 24 hours
-	}))
+	// Manual CORS middleware
+	r.Use(func(c *gin.Context) {
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization")
+
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
+		c.Next()
+	})
 
 	// ✅ Additional manual CORS headers as fallback
 	r.Use(func(c *gin.Context) {
