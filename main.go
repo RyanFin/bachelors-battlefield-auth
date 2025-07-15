@@ -33,15 +33,6 @@ func main() {
 	// ✅ Use custom CORS middleware first
 	r.Use(corsMiddleware())
 
-	// ✅ Catch-all OPTIONS handler for any missed preflight requests
-	r.Any("/*path", func(c *gin.Context) {
-		if c.Request.Method == "OPTIONS" {
-			c.Status(http.StatusNoContent)
-			return
-		}
-		c.Next()
-	})
-
 	// ✅ Actual POST login route
 	adminPassword := os.Getenv("ADMIN_PASSWORD")
 	if adminPassword == "" {
@@ -49,11 +40,6 @@ func main() {
 	}
 
 	r.POST("/admin/login", func(c *gin.Context) {
-		// Explicitly set CORS headers again for this endpoint
-		c.Header("Access-Control-Allow-Origin", "*")
-		c.Header("Access-Control-Allow-Methods", "POST, OPTIONS")
-		c.Header("Access-Control-Allow-Headers", "Content-Type, Accept, Origin")
-
 		var req struct {
 			Password string `json:"password" binding:"required"`
 		}
@@ -86,6 +72,23 @@ func main() {
 			"message": "CORS test endpoint",
 			"status":  "working",
 		})
+	})
+
+	// ✅ Add a root endpoint
+	r.GET("/", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"message": "API is running",
+			"status":  "ok",
+		})
+	})
+
+	// ✅ Handle OPTIONS requests for specific paths that might need it
+	r.OPTIONS("/admin/login", func(c *gin.Context) {
+		c.Status(http.StatusNoContent)
+	})
+
+	r.OPTIONS("/test", func(c *gin.Context) {
+		c.Status(http.StatusNoContent)
 	})
 
 	port := os.Getenv("PORT")
