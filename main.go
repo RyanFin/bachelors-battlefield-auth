@@ -11,18 +11,42 @@ import (
 func main() {
 	r := gin.Default()
 
-	// ✅ Set up CORS middleware BEFORE routes
+	// ✅ Updated CORS configuration to allow all origins
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"*"}, // For testing. In production, replace with your frontend domain
-		AllowMethods:     []string{"GET", "POST", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept"},
-		ExposeHeaders:    []string{"Content-Length"},
-		AllowCredentials: true,
+		AllowOrigins: []string{"*"},
+		AllowMethods: []string{
+			"GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD", "PATCH",
+		},
+		AllowHeaders: []string{
+			"Origin", "Content-Type", "Accept", "Authorization",
+			"X-Requested-With", "Access-Control-Request-Method",
+			"Access-Control-Request-Headers",
+		},
+		ExposeHeaders: []string{
+			"Content-Length", "Access-Control-Allow-Origin",
+			"Access-Control-Allow-Headers", "Content-Type",
+		},
+		AllowCredentials: false, // Set to false when using "*" for AllowOrigins
+		MaxAge:           86400, // 24 hours
 	}))
+
+	// ✅ Additional manual CORS headers as fallback
+	r.Use(func(c *gin.Context) {
+		c.Header("Access-Control-Allow-Origin", "*")
+		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization, X-Requested-With")
+
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(http.StatusNoContent)
+			return
+		}
+
+		c.Next()
+	})
 
 	// ✅ Handle preflight OPTIONS requests for all paths
 	r.OPTIONS("/*path", func(c *gin.Context) {
-		c.AbortWithStatus(http.StatusOK)
+		c.Status(http.StatusNoContent)
 	})
 
 	// ✅ Actual POST login route
