@@ -7,40 +7,39 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func main() {
-	r := gin.Default()
-
-	// ✅ Updated CORS configuration to allow all origins
-	// Manual CORS middleware
-	r.Use(func(c *gin.Context) {
-		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
-		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization")
-
-		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(204)
-			return
-		}
-		c.Next()
-	})
-
-	// ✅ Additional manual CORS headers as fallback
-	r.Use(func(c *gin.Context) {
+// Custom CORS middleware that handles all CORS logic manually
+func corsMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		// Set CORS headers for all requests
 		c.Header("Access-Control-Allow-Origin", "*")
-		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-		c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization, X-Requested-With")
+		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH")
+		c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization, X-Requested-With, Access-Control-Request-Method, Access-Control-Request-Headers")
+		c.Header("Access-Control-Expose-Headers", "Content-Length, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Content-Type")
+		c.Header("Access-Control-Max-Age", "86400")
 
+		// Handle preflight OPTIONS requests
 		if c.Request.Method == "OPTIONS" {
 			c.AbortWithStatus(http.StatusNoContent)
 			return
 		}
 
 		c.Next()
-	})
+	}
+}
 
-	// ✅ Handle preflight OPTIONS requests for all paths
-	r.OPTIONS("/*path", func(c *gin.Context) {
-		c.Status(http.StatusNoContent)
+func main() {
+	r := gin.Default()
+
+	// ✅ Use custom CORS middleware first
+	r.Use(corsMiddleware())
+
+	// ✅ Catch-all OPTIONS handler for any missed preflight requests
+	r.Any("/*path", func(c *gin.Context) {
+		if c.Request.Method == "OPTIONS" {
+			c.Status(http.StatusNoContent)
+			return
+		}
+		c.Next()
 	})
 
 	// ✅ Actual POST login route
@@ -50,6 +49,11 @@ func main() {
 	}
 
 	r.POST("/admin/login", func(c *gin.Context) {
+		// Explicitly set CORS headers again for this endpoint
+		c.Header("Access-Control-Allow-Origin", "*")
+		c.Header("Access-Control-Allow-Methods", "POST, OPTIONS")
+		c.Header("Access-Control-Allow-Headers", "Content-Type, Accept, Origin")
+
 		var req struct {
 			Password string `json:"password" binding:"required"`
 		}
@@ -76,9 +80,18 @@ func main() {
 		})
 	})
 
+	// ✅ Add a test endpoint to verify CORS is working
+	r.GET("/test", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"message": "CORS test endpoint",
+			"status":  "working",
+		})
+	})
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
+
 	r.Run(":" + port)
 }
