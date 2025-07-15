@@ -71,6 +71,10 @@ func main() {
 		panic("ADMIN_PASSWORD environment variable not set")
 	}
 
+	r.OPTIONS("/admin/login", func(c *gin.Context) {
+		c.Status(http.StatusOK)
+	})
+
 	r.POST("/admin/login", func(c *gin.Context) {
 		var req struct {
 			Password string `json:"password" binding:"required"`
