@@ -7,27 +7,20 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// Custom CORS middleware that handles all CORS logic manually
+// Ultra-permissive CORS middleware
 func corsMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		origin := c.Request.Header.Get("Origin")
-
-		// Allow all origins - either use the requesting origin or wildcard
-		if origin != "" {
-			c.Header("Access-Control-Allow-Origin", origin)
-		} else {
-			c.Header("Access-Control-Allow-Origin", "*")
-		}
-
+		// Always set these headers for every request
+		c.Header("Access-Control-Allow-Origin", "*")
 		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH")
-		c.Header("Access-Control-Allow-Headers", "Origin, Content-Type, Accept, Authorization, X-Requested-With, Access-Control-Request-Method, Access-Control-Request-Headers")
-		c.Header("Access-Control-Expose-Headers", "Content-Length, Access-Control-Allow-Origin, Access-Control-Allow-Headers, Content-Type")
-		c.Header("Access-Control-Allow-Credentials", "true")
+		c.Header("Access-Control-Allow-Headers", "*")
+		c.Header("Access-Control-Expose-Headers", "*")
 		c.Header("Access-Control-Max-Age", "86400")
+		c.Header("Access-Control-Allow-Credentials", "false")
 
-		// Handle preflight OPTIONS requests
+		// Handle preflight OPTIONS requests immediately
 		if c.Request.Method == "OPTIONS" {
-			c.AbortWithStatus(http.StatusNoContent)
+			c.AbortWithStatus(http.StatusOK)
 			return
 		}
 
@@ -38,10 +31,41 @@ func corsMiddleware() gin.HandlerFunc {
 func main() {
 	r := gin.Default()
 
-	// ✅ Use custom CORS middleware first
+	// Apply CORS middleware to ALL routes
 	r.Use(corsMiddleware())
 
-	// ✅ Actual POST login route
+	// Additional middleware to ensure headers are set
+	r.Use(func(c *gin.Context) {
+		// Force set headers again as backup
+		c.Writer.Header().Set("Access-Control-Allow-Origin", "*")
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS, HEAD, PATCH")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "*")
+
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(http.StatusOK)
+			return
+		}
+
+		c.Next()
+	})
+
+	// Root endpoint
+	r.GET("/", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"message": "API is running",
+			"status":  "ok",
+		})
+	})
+
+	// Test endpoint
+	r.GET("/test", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"message": "CORS test endpoint",
+			"status":  "working",
+		})
+	})
+
+	// Login endpoint
 	adminPassword := os.Getenv("ADMIN_PASSWORD")
 	if adminPassword == "" {
 		panic("ADMIN_PASSWORD environment variable not set")
@@ -74,29 +98,15 @@ func main() {
 		})
 	})
 
-	// ✅ Add a test endpoint to verify CORS is working
-	r.GET("/test", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"message": "CORS test endpoint",
-			"status":  "working",
+	// Catch-all OPTIONS handler for any missed preflight requests
+	r.NoRoute(func(c *gin.Context) {
+		if c.Request.Method == "OPTIONS" {
+			c.Status(http.StatusOK)
+			return
+		}
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "Route not found",
 		})
-	})
-
-	// ✅ Add a root endpoint
-	r.GET("/", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"message": "API is running",
-			"status":  "ok",
-		})
-	})
-
-	// ✅ Handle OPTIONS requests for specific paths that might need it
-	r.OPTIONS("/admin/login", func(c *gin.Context) {
-		c.Status(http.StatusNoContent)
-	})
-
-	r.OPTIONS("/test", func(c *gin.Context) {
-		c.Status(http.StatusNoContent)
 	})
 
 	port := os.Getenv("PORT")
