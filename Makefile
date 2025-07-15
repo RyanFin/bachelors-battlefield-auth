@@ -4,4 +4,7 @@ build:
 logs:
 	heroku logs --tail
 
+push-to-heroku: build
+	git push heroku main
+
 .PHONY: build logs
