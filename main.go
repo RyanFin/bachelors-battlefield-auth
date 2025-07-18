@@ -78,6 +78,11 @@ func initMongoDB() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
+	err = client.Connect(ctx)
+	if err != nil {
+		log.Fatal("❌ Failed to connect to MongoDB:", err)
+	}
+
 	// var err error
 	// client, err = mongo.Connect(ctx, clientOptions)
 	// if err != nil {
