@@ -3,6 +3,7 @@ package main
 import (
 	"bachelors-battlefield-auth/pkg/handlers"
 	"context"
+	"fmt"
 	"log"
 	"net/http"
 	"os"
@@ -39,8 +40,24 @@ func corsMiddleware() gin.HandlerFunc {
 }
 
 func initMongoDB() {
+
+	dbUserName := os.Getenv("DB_USERNAME")
+	if dbUserName == "" {
+		panic("DB_USERNAME environment variable not set")
+	}
+
+	dbPassword := os.Getenv("DB_PASSWORD")
+	if dbPassword == "" {
+		panic("DB_USERNAME environment variable not set")
+	}
+
+	dbCluster := os.Getenv("DB_CLUSTER")
+	if dbCluster == "" {
+		panic("DB_USERNAME environment variable not set")
+	}
+
 	// MongoDB connection string
-	connectionString := "mongodb+srv://ryanfinlayson125:7XENSnOXUXOcF1e1@battlefieldcluster.okvhi9d.mongodb.net/?retryWrites=true&w=majority&appName=BattlefieldCluster"
+	connectionString := fmt.Sprintf("mongodb+srv://%s:%s@%s/?retryWrites=true&w=majority&appName=BattlefieldCluster", dbUserName, dbPassword, dbCluster)
 
 	// Set client options
 	clientOptions := options.Client().ApplyURI(connectionString)
