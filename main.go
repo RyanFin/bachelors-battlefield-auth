@@ -63,21 +63,26 @@ func initMongoDB() {
 
 	// Set client options
 	// Use SCRAM-SHA-256 for authentication
-	clientOptions := options.Client().ApplyURI(connectionString).SetAuth(options.Credential{
-		AuthMechanism: "SCRAM-SHA-256",
-		Username:      dbUserName,
-		Password:      dbPassword,
-	})
+	// clientOptions := options.Client().ApplyURI(connectionString).SetAuth(options.Credential{
+	// 	AuthMechanism: "SCRAM-SHA-256",
+	// 	Username:      dbUserName,
+	// 	Password:      dbPassword,
+	// })
+
+	client, err := mongo.NewClient(options.Client().ApplyURI(connectionString))
+	if err != nil {
+		log.Fatal("❌ Mongo client creation failed:", err)
+	}
 
 	// Connect to MongoDB
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	var err error
-	client, err = mongo.Connect(ctx, clientOptions)
-	if err != nil {
-		log.Fatal("Failed to connect to MongoDB:", err)
-	}
+	// var err error
+	// client, err = mongo.Connect(ctx, clientOptions)
+	// if err != nil {
+	// 	log.Fatal("Failed to connect to MongoDB:", err)
+	// }
 
 	// Check the connection
 	err = client.Ping(ctx, nil)
