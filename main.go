@@ -59,6 +59,8 @@ func initMongoDB() {
 	// MongoDB connection string
 	connectionString := fmt.Sprintf("mongodb+srv://%s:%s@%s/?retryWrites=true&w=majority&appName=BattlefieldCluster", dbUserName, dbPassword, dbCluster)
 
+	log.Println("connection str: ", connectionString)
+
 	// Set client options
 	clientOptions := options.Client().ApplyURI(connectionString)
 
