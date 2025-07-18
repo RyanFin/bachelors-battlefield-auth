@@ -59,10 +59,15 @@ func initMongoDB() {
 	// MongoDB connection string
 	connectionString := fmt.Sprintf("mongodb+srv://%s:%s@%s/?retryWrites=true&w=majority&appName=BattlefieldCluster", dbUserName, dbPassword, dbCluster)
 
-	log.Println("connection str: ", connectionString)
+	// log.Println("connection str: ", connectionString)
 
 	// Set client options
-	clientOptions := options.Client().ApplyURI(connectionString)
+	// Use SCRAM-SHA-256 for authentication
+	clientOptions := options.Client().ApplyURI(connectionString).SetAuth(options.Credential{
+		AuthMechanism: "SCRAM-SHA-256",
+		Username:      dbUserName,
+		Password:      dbPassword,
+	})
 
 	// Connect to MongoDB
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
