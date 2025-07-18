@@ -1,11 +1,21 @@
 package main
 
 import (
+	"bachelors-battlefield-auth/pkg/handlers"
+	"context"
+	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/gin-gonic/gin"
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
+
+// MongoDB Atlas
+var client *mongo.Client
+var database *mongo.Database
 
 // Ultra-permissive CORS middleware
 func corsMiddleware() gin.HandlerFunc {
@@ -28,8 +38,44 @@ func corsMiddleware() gin.HandlerFunc {
 	}
 }
 
+func initMongoDB() {
+	// MongoDB connection string
+	connectionString := "mongodb+srv://ryanfinlayson125:7XENSnOXUXOcF1e1@battlefieldcluster.okvhi9d.mongodb.net/?retryWrites=true&w=majority&appName=BattlefieldCluster"
+
+	// Set client options
+	clientOptions := options.Client().ApplyURI(connectionString)
+
+	// Connect to MongoDB
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	var err error
+	client, err = mongo.Connect(ctx, clientOptions)
+	if err != nil {
+		log.Fatal("Failed to connect to MongoDB:", err)
+	}
+
+	// Check the connection
+	err = client.Ping(ctx, nil)
+	if err != nil {
+		log.Fatal("Failed to ping MongoDB:", err)
+	}
+
+	// Set up Mongo DB database
+	dbName := os.Getenv("DATABASE_NAME")
+	if dbName == "" {
+		panic("DATABASE_NAME environment variable not set")
+	}
+
+	database = client.Database(dbName)
+	log.Println("Connected to MongoDB Atlas!")
+}
+
 func main() {
 	r := gin.Default()
+
+	// Initialize MongoDB connection
+	initMongoDB()
 
 	// Apply CORS middleware to ALL routes
 	r.Use(corsMiddleware())
@@ -49,6 +95,16 @@ func main() {
 		c.Next()
 	})
 
+	// Login endpoint
+	adminPassword := os.Getenv("ADMIN_PASSWORD")
+	if adminPassword == "" {
+		panic("ADMIN_PASSWORD environment variable not set")
+	}
+
+	// ----------------------
+	// Routes
+	// ----------------------
+
 	// Root endpoint
 	r.GET("/", func(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{
@@ -56,20 +112,6 @@ func main() {
 			"status":  "ok",
 		})
 	})
-
-	// Test endpoint
-	r.GET("/test", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{
-			"message": "CORS test endpoint",
-			"status":  "working",
-		})
-	})
-
-	// Login endpoint
-	adminPassword := os.Getenv("ADMIN_PASSWORD")
-	if adminPassword == "" {
-		panic("ADMIN_PASSWORD environment variable not set")
-	}
 
 	r.OPTIONS("/admin/login", func(c *gin.Context) {
 		c.Status(http.StatusOK)
@@ -102,6 +144,29 @@ func main() {
 		})
 	})
 
+	// retrieve handlers using an instance of a handlers object
+	h := &handlers.Handler{DB: database}
+
+	// Routes
+	api := r.Group("/api")
+	{
+		// Location routes
+		api.GET("/locations", h.GetLocations)
+		api.POST("/locations", h.CreateLocation)
+		api.PUT("/locations/:id", h.UpdateLocation)
+		api.DELETE("/locations/:id", h.DeleteLocation)
+		api.GET("/locations/:id", h.GetLocation)
+
+		// Voting routes
+		api.POST("/locations/:id/vote", h.AddVote)
+		api.GET("/locations/:id/votes", h.GetVotes)
+
+		// Notes routes
+		api.POST("/locations/:id/notes", h.AddNote)
+		api.GET("/locations/:id/notes", h.GetNotes)
+		api.DELETE("/locations/:id/notes/:noteId", h.DeleteNote)
+	}
+
 	// Catch-all OPTIONS handler for any missed preflight requests
 	r.NoRoute(func(c *gin.Context) {
 		if c.Request.Method == "OPTIONS" {
@@ -113,6 +178,20 @@ func main() {
 		})
 	})
 
+	// Test endpoint
+	r.GET("/test", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{
+			"message": "CORS test endpoint",
+			"status":  "working",
+		})
+	})
+
+	// Health check
+	r.GET("/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"status": "healthy"})
+	})
+
+	// Heroku port
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"

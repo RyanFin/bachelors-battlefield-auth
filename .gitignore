@@ -1,0 +1,45 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Output of go build / go run
+/main
+/build/
+bin/
+dist/
+*.log
+
+# Dependency directories (if you're not using Go modules)
+vendor/
+
+# Go workspace file
+go.work
+go.work.sum
+
+# Go module cache
+*.mod
+*.sum
+
+# Test cache
+**/testdata/
+
+# IDE/editor config
+.vscode/
+.idea/
+*.swp
+*.swo
+*.swn
+.DS_Store
+
+# OS files
+Thumbs.db
+
+# Env/config files
+.env
+.env.*
+config.local.yaml
