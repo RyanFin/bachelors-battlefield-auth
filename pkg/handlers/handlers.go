@@ -92,14 +92,16 @@ func (h *Handler) CreateLocation(c *gin.Context) {
 	}
 
 	// Add initial note if provided
-	if req.Notes != "" {
-		note := models.Note{
-			ID:         primitive.NewObjectID(),
-			Content:    req.Notes,
-			CreatedAt:  time.Now(),
-			IsApproved: false,
+	if len(req.Notes) > 0 {
+		for _, reqNote := range req.Notes {
+			note := models.Note{
+				ID:         primitive.NewObjectID(),
+				Content:    reqNote.Content,
+				CreatedAt:  time.Now(),
+				IsApproved: false,
+			}
+			location.PendingNotes = append(location.PendingNotes, note)
 		}
-		location.PendingNotes = append(location.PendingNotes, note)
 	}
 
 	result, err := collection.InsertOne(ctx, location)

@@ -34,7 +34,7 @@ type Location struct {
 	Key          string             `json:"key" bson:"key"`
 	Name         string             `json:"name" bson:"name"`
 	Emoji        string             `json:"emoji" bson:"emoji"`
-	Difficulty   string             `json:"difficulty" bson:"difficulty"`
+	Difficulty   string             `json:"difficulty" bson:"difficulty"` // Stored as: "easy", "normal", "hard", "survivor", "grounded"
 	Color        string             `json:"color" bson:"color"`
 	LocationData LocationData       `json:"locationData" bson:"locationData"`
 	Votes        []Vote             `json:"votes" bson:"votes"`
@@ -52,7 +52,7 @@ type CreateLocationRequest struct {
 	Emoji        string       `json:"emoji"`
 	Difficulty   string       `json:"difficulty"`
 	LocationData LocationData `json:"locationData"`
-	Notes        string       `json:"notes"`
+	Notes        []Note       `json:"notes"`
 }
 
 type VoteRequest struct {
