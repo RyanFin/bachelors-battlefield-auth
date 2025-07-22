@@ -195,10 +195,16 @@ func main() {
 		api.POST("/locations/:id/vote", h.AddVote)
 		api.GET("/locations/:id/votes", h.GetVotes)
 
+		// Additional voting routes
+		api.GET("/votes/pending", h.GetPendingVotes)
+		api.POST("votes/approve", h.ApproveVotes)
+		api.POST("/votes/reject", h.RejectVotes)
+
 		// Notes routes
 		api.POST("/locations/:id/notes", h.AddNote)
 		api.GET("/locations/:id/notes", h.GetNotes)
 		api.DELETE("/locations/:id/notes/:noteId", h.DeleteNote)
+
 	}
 
 	// Catch-all OPTIONS handler for any missed preflight requests
